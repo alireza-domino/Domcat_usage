@@ -1,0 +1,83 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: domcat
+spec:
+  template:
+    metadata:
+      labels:
+        mongodb-replicaset-client: "true"
+        git-client: "true"
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: datasets
+          persistentVolumeClaim:
+            claimName: domino-shared-store
+        - name: output-data
+          persistentVolumeClaim:
+            claimName: domcat-output
+      containers:
+      - name: domcat
+        image: quay.io/domino/domcat:latest
+        args: ['analysis', 'large_projects', '--cutoff-gb', '1.0', '-u', '-s', '-f', 'tar']
+        volumeMounts:
+          - mountPath: /domino/efs/filecache
+            name: datasets
+            readOnly: true
+          - mountPath: /output
+            name: output-data
+        env:
+        - name: MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-replicaset-admin
+              key: user
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-replicaset-admin
+              key: password
+        - name: MONGO_HOST
+          value: mongodb-replicaset:27017
+        - name: GIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: domino-git-repo
+              key: api-key
+        - name: GIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: domino-git-repo
+              key: username
+        - name: GIT_HOST
+          value: git:80
+        - name: TAR_OUTPUT_DIR
+          value: /output
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: domcat-aws-credentials
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: domcat-aws-credentials
+              key: AWS_SECRET_ACCESS_KEY
+  backoffLimit: 0
+...
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: domcat-output
+spec:
+  storageClassName: dominodisk
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+...
+
