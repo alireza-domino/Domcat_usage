@@ -21,7 +21,7 @@ spec:
       containers:
       - name: domcat
         image: quay.io/domino/domcat:latest
-        args: ['analysis', 'large_projects', '--cutoff-gb', '1.0', '-u', '-s', '-f', 'tar']
+        args: ['analysis', 'large_projects', '--cutoff-gb', '30.0', '-u', '-s', '-f', 'tar']
         volumeMounts:
           - mountPath: /domino/efs/filecache
             name: datasets
